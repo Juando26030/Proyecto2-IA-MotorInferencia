@@ -22,4 +22,23 @@ public class Hecho {
     public String toString() {
         return objeto == null ? predicado + "(" + sujeto + ")" : predicado + "(" + sujeto + ", " + objeto + ")";
     }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (obj == null || getClass() != obj.getClass()) return false;
+        Hecho hecho = (Hecho) obj;
+        return predicado.equals(hecho.predicado) &&
+                sujeto.equals(hecho.sujeto) &&
+                ((objeto == null && hecho.objeto == null) || (objeto != null && objeto.equals(hecho.objeto)));
+    }
+
+    @Override
+    public int hashCode() {
+        int result = predicado.hashCode();
+        result = 31 * result + sujeto.hashCode();
+        result = 31 * result + (objeto != null ? objeto.hashCode() : 0);
+        return result;
+    }
+
 }

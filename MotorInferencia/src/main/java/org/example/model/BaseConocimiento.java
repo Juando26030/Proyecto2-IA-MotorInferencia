@@ -5,20 +5,25 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.HashSet;
 import java.util.Set;
 
 @Getter
 @Setter
 @AllArgsConstructor
-@NoArgsConstructor
 public class BaseConocimiento {
     private Set<Hecho> hechos;
     private Set<Regla> reglas;
 
+    public BaseConocimiento() {
+        this.hechos = new HashSet<>();
+        this.reglas = new HashSet<>();
+    }
+
     public void agregarHecho(Hecho hecho) {
-        hechos.add(hecho);
+        this.hechos.add(hecho);
     }
     public void agregarRegla(Regla regla) {
-        reglas.add(regla);
+        this.reglas.add(regla);
     }
 }

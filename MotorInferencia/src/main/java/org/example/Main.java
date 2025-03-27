@@ -12,26 +12,42 @@ public class Main {
         BaseConocimiento base = new BaseConocimiento();
 
         // Agregar hechos iniciales
-        Hecho aliceConoceBob = new Hecho("Conoce", "Alice", "Bob");
-        Hecho bobConoceJames = new Hecho("Conoce", "Bob", "James");
+        Hecho hombre = new Hecho("Hombre", "Marco");
+        Hecho gobernante = new Hecho("Gobernante", "Cesar");
+        Hecho intentaAsesinar = new Hecho("IntentaAsesinar", "Marco", "Cesar");
 
-        base.agregarHecho(aliceConoceBob);
-        base.agregarHecho(bobConoceJames);
+        base.agregarHecho(hombre);
+        base.agregarHecho(hombre);
+        base.agregarHecho(gobernante);
+        base.agregarHecho(intentaAsesinar);
 
-        // Agregar regla lógica: Si A conoce B y B conoce C, entonces A conoce C
-        Regla transitividad = new Regla(
-                Arrays.asList(aliceConoceBob, bobConoceJames),
-                new Hecho("Conoce", "Alice", "James")
+        // Regla: Todo el mundo es leal a alguien
+        Hecho lealMarcoAlguien = new Hecho("Leal", "Marco", "Alguien");
+
+        Regla reglaLealtadUniversal = new Regla(
+                Arrays.asList(hombre), // Todo hombre es leal a alguien
+                lealMarcoAlguien
         );
-        base.agregarRegla(transitividad);
+
+        base.agregarRegla(reglaLealtadUniversal);
+
+        // Regla: Si Marco intenta asesinar a César, no es leal a él
+        Hecho noLealMarcoCesar = new Hecho("NoLeal", "Marco", "Cesar");
+
+        Regla reglaNoLealtad = new Regla(
+                Arrays.asList(hombre, gobernante, intentaAsesinar),
+                noLealMarcoCesar
+        );
+
+        base.agregarRegla(reglaNoLealtad);
 
         // Crear motor de inferencia
         MotorInferencia motor = new MotorInferencia();
 
-        // Hacer consulta
-        Hecho consulta = new Hecho("Conoce", "Alice", "James");
+        // Consulta: ¿Marco era leal a César?
+        Hecho consulta = new Hecho("Leal", "Marco", "Cesar");
         boolean resultado = motor.inferir(base, consulta);
 
-        System.out.println("¿Alice conoce a James por transitividad? " + resultado);
+        System.out.println("¿Cesar era hombre? " + resultado);
     }
 }
