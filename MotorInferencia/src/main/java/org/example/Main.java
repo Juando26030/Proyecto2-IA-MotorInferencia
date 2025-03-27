@@ -45,9 +45,9 @@ public class Main {
         MotorInferencia motor = new MotorInferencia();
 
         // Consulta: ¿Marco era leal a César?
-        Hecho consulta = new Hecho("Leal", "Marco", "Cesar");
+        Hecho consulta = new Hecho("IntentaAsesinar", "Marco", "Cesar");
         boolean resultado = motor.inferir(base, consulta);
 
-        System.out.println("¿Cesar era hombre? " + resultado);
+        System.out.println(consulta.toString() + ": " + resultado);
     }
 }
