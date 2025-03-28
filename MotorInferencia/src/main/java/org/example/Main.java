@@ -26,28 +26,26 @@ public class Main {
 
         Regla reglaLealtadUniversal = new Regla(
                 Arrays.asList(hombre), // Todo hombre es leal a alguien
-                lealMarcoAlguien
-        );
+                lealMarcoAlguien);
 
         base.agregarRegla(reglaLealtadUniversal);
 
-        // Regla: Si Marco intenta asesinar a César, no es leal a él
+        // Regla
         Hecho noLealMarcoCesar = new Hecho("NoLeal", "Marco", "Cesar");
 
         Regla reglaNoLealtad = new Regla(
                 Arrays.asList(hombre, gobernante, intentaAsesinar),
-                noLealMarcoCesar
-        );
+                noLealMarcoCesar);
 
         base.agregarRegla(reglaNoLealtad);
 
-        // Crear motor de inferencia
+        // Se crea una instancia del motor de inferencia
         MotorInferencia motor = new MotorInferencia();
 
-        // Consulta: ¿Marco era leal a César?
-        Hecho consulta = new Hecho("IntentaAsesinar", "Marco", "Cesar");
+        // Consulta
+        Hecho consulta = new Hecho("Leal", "Marco", "Cesar");
         boolean resultado = motor.inferir(base, consulta);
 
-        System.out.println(consulta.toString() + ": " + resultado);
+        System.out.println("Resultado consulta: " + consulta.toString() + "-> " + resultado);
     }
 }
