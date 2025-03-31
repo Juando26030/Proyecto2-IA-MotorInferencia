@@ -11,19 +11,21 @@ import java.util.Set;
 @Getter
 @Setter
 @AllArgsConstructor
+@NoArgsConstructor
 public class BaseConocimiento {
-    private Set<Hecho> hechos;
-    private Set<Regla> reglas;
-
-    public BaseConocimiento() {
-        this.hechos = new HashSet<>();
-        this.reglas = new HashSet<>();
-    }
+    private Set<Hecho> hechos = new HashSet<>();
+    private Set<Regla> reglas = new HashSet<>();
+    private Set<Set<String>> clausulasDisyuntivas = new HashSet<>();
 
     public void agregarHecho(Hecho hecho) {
         this.hechos.add(hecho);
     }
+
     public void agregarRegla(Regla regla) {
         this.reglas.add(regla);
+    }
+
+    public void agregarClausulasDisyuntivas(Set<Set<String>> clausulas) {
+        this.clausulasDisyuntivas.addAll(clausulas);
     }
 }

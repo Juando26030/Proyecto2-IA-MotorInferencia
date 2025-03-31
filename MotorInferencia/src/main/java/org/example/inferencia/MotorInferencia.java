@@ -8,132 +8,125 @@ import org.example.model.BaseConocimiento;
 import org.example.model.Hecho;
 import org.example.model.Regla;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
+@Getter
+@Setter
+@AllArgsConstructor
+@NoArgsConstructor
 public class MotorInferencia {
-    public boolean inferir(BaseConocimiento base, Hecho consulta) {
-        System.out.println("--- Consulta: " + consulta + " ---");
+    private BaseConocimiento base;
+    private static final int MAX_ITERACIONES = 100;
 
-        // Se convierte la base de conocimiento, tanto hechos como reglas, a Forma
-        // Normal Conjuntiva (FNC)
-        Set<Set<String>> clausulas = convertirAFNC(base);
+    public Set<Set<String>> convertirAFNC() {
+        Set<Set<String>> clausulas = new HashSet<>();
 
-        // Se niega la consulta y se añade a la lista de cláusulas para hacer resolución
-        // por contradicción
-        Set<String> negacionConsulta = negarHecho(consulta);
-        clausulas.add(negacionConsulta);
+        // Convertir hechos en cláusulas
+        for (Hecho hecho : base.getHechos()) {
+            Set<String> clausula = new HashSet<>();
+            clausula.add(unificarTerminos(hecho.toString()));
+            clausulas.add(clausula);
+        }
 
-        System.out.println("Base de conocimiento:");
-        imprimirClausulas(clausulas);
+        // Convertir reglas en cláusulas en FNC
+        for (Regla regla : base.getReglas()) {
+            Set<String> clausula = new HashSet<>();
 
-        Set<Set<String>> nuevasClausulas = new HashSet<>();
-        while (true) {
-            int k = 1;
+            // Negamos las premisas
+            for (Hecho premisa : regla.getPremisas()) {
+                clausula.add("¬" + unificarTerminos(premisa.toString()));
+            }
+
+            // Agregamos la conclusión
+            clausula.add(unificarTerminos(regla.getConclusion().toString()));
+            clausulas.add(clausula);
+        }
+
+        // Agregar cláusulas disyuntivas (para reglas tipo A ⇒ B ∨ C)
+        for (Set<String> clausulaDisyuntiva : base.getClausulasDisyuntivas()) {
+            Set<String> clausulaUnificada = new HashSet<>();
+            for (String literal : clausulaDisyuntiva) {
+                clausulaUnificada.add(unificarTerminos(literal));
+            }
+            clausulas.add(clausulaUnificada);
+        }
+
+        return clausulas;
+    }
+
+    private String unificarTerminos(String literal) {
+        // Reemplaza variables por constantes específicas del problema
+        String resultado = literal;
+        if (literal.contains("(x)") || literal.contains("(x,") || literal.contains(", x)") || literal.contains(", x,")) {
+            resultado = resultado.replace("(x)", "(Marco)").replace("(x,", "(Marco,").replace(", x)", ", Marco)").replace(", x,", ", Marco,");
+        }
+        if (literal.contains("(y)") || literal.contains("(y,") || literal.contains(", y)") || literal.contains(", y,")) {
+            resultado = resultado.replace("(y)", "(Cesar)").replace("(y,", "(Cesar,").replace(", y)", ", Cesar)").replace(", y,", ", Cesar,");
+        }
+        return resultado;
+    }
+
+    public boolean resolver(Set<Set<String>> clausulas, String consulta) throws Exception {
+        // Negamos la consulta para la refutación
+        Set<String> clausulaNegada = new HashSet<>();
+        clausulaNegada.add("¬" + unificarTerminos(consulta));
+        clausulas.add(clausulaNegada);
+
+        int iteraciones = 0;
+        boolean nuevaClausulaGenerada = true;
+
+        while (nuevaClausulaGenerada && iteraciones < MAX_ITERACIONES) {
+            iteraciones++;
+            nuevaClausulaGenerada = false;
+
+            Set<Set<String>> nuevasClausulas = new HashSet<>();
             List<Set<String>> listaClausulas = new ArrayList<>(clausulas);
 
-            // Se realiza un recorrido por todas las claúsulas existentes
             for (int i = 0; i < listaClausulas.size(); i++) {
                 for (int j = i + 1; j < listaClausulas.size(); j++) {
-                    Set<String> resolvente = resolver(listaClausulas.get(i), listaClausulas.get(j));
+                    Set<String> resolvente = resolverClausulas(listaClausulas.get(i), listaClausulas.get(j));
 
                     if (resolvente != null) {
-                        // Si se produce la cláusula nula, la consulta es verdadera
                         if (resolvente.isEmpty()) {
-                            System.out.println("Se produjo la cláusula nula. La consulta es verdadera.");
-                            return true;
+                            return true; // Se derivó la cláusula vacía (contradicción)
                         }
-                        nuevasClausulas.add(resolvente);
+
+                        if (!clausulas.contains(resolvente)) {
+                            nuevasClausulas.add(resolvente);
+                            nuevaClausulaGenerada = true;
+                        }
                     }
                 }
             }
 
-            // Si no existen nuevas cláusulas, entonces se detiene el ciclo
-            if (nuevasClausulas.isEmpty()) {
-                System.out.println("No se pueden generar más hijos en el árbol. La consulta es falsa.");
-                return false;
-            }
-
-            if (clausulas.containsAll(nuevasClausulas)) {
-                System.out.println("La consulta es falsa.");
-                return false;
-            }
-
             clausulas.addAll(nuevasClausulas);
-            nuevasClausulas.clear();
-
-            System.out.println("\n------ Cláusulas después de la inferencia------");
-            imprimirClausulas(clausulas);
-            k++;
         }
+
+        if (iteraciones >= MAX_ITERACIONES) {
+            throw new Exception("No se puede determinar la consulta con la información disponible");
+        }
+
+        return false; // No se pudo derivar la contradicción
     }
 
-    private Set<Set<String>> convertirAFNC(BaseConocimiento base) {
-        Set<Set<String>> clausulas = new HashSet<>();
-        for (Hecho hecho : base.getHechos()) {
-            clausulas.add(new HashSet<>(Collections.singleton(hecho.toString())));
-        }
-        for (Regla regla : base.getReglas()) {
-            Set<String> clausula = new HashSet<>();
-            for (Hecho premisa : regla.getPremisas()) {
-                clausula.add("¬" + premisa.toString());
+    private Set<String> resolverClausulas(Set<String> c1, Set<String> c2) {
+        for (String literal1 : c1) {
+            String complemento;
+            if (literal1.startsWith("¬")) {
+                complemento = literal1.substring(1);
+            } else {
+                complemento = "¬" + literal1;
             }
-            clausula.add(regla.getConclusion().toString());
-            clausulas.add(clausula);
-        }
-        return clausulas;
-    }
 
-    private Set<String> negarHecho(Hecho hecho) {
-        Set<String> negacion = new HashSet<>();
-        negacion.add("¬" + hecho.toString());
-        return negacion;
-    }
-
-    private Set<String> resolver(Set<String> clausula1, Set<String> clausula2) {
-
-        for (String literal1 : clausula1) {
-            // Se genera el complemento del literal actual
-            // Si el literal comienza con "¬", su complemento es el literal sin "¬".
-            // Si no comienza con "¬", su complemento es el literal con "¬" añadido al
-            // inicio.
-            String complemento = literal1.startsWith("¬") ? literal1.substring(1) : "¬" + literal1;
-
-            // Se verifica si el complemento del literal existe en la segunda cláusula
-            if (clausula2.contains(complemento)) {
-                // Si se encuentra un literal complementario, se procede a resolver las
-                // cláusulas
-
-                // Se crear un nuevo conjunto que combine los literales de ambas cláusulas
-                Set<String> resultado = new HashSet<>(clausula1);
-                resultado.addAll(clausula2);
-
-                // Se elimina el literal actual y su complemento del conjunto combinado
-                resultado.remove(literal1);
-                resultado.remove(complemento);
-
-                // Se imprimen las cláusulas que se están resolviendo y su respectivo resultado
-                System.out.println("Resolviendo:");
-                System.out.println(" - Clausula 1: " + clausula1);
-                System.out.println(" - Clausula 2: " + clausula2);
-                System.out.println(" - Resultado: " + resultado);
-                System.out.println();
-
-                // Se retorna la nueva cláusula resultante
-                return resultado;
+            if (c2.contains(complemento)) {
+                Set<String> resolvente = new HashSet<>(c1);
+                resolvente.remove(literal1);
+                Set<String> c2Copia = new HashSet<>(c2);
+                c2Copia.remove(complemento);
+                resolvente.addAll(c2Copia);
+                return resolvente;
             }
         }
-        // Si no se encuentra ningún literal complementario, se retorna null para
-        // indicar que no se puede resolver
-        return null;
-    }
-
-    private void imprimirClausulas(Set<Set<String>> clausulas) {
-        for (Set<String> clausula : clausulas) {
-            System.out.println(" - " + clausula + " \n");
-        }
+        return null; // No se pudo resolver
     }
 }

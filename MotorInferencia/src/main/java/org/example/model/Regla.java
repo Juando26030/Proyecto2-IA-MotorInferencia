@@ -5,14 +5,14 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.util.List;
+import java.util.Set;
 
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
 public class Regla {
-    private List<Hecho> premisas; // Condiciones
+    private Set<Hecho> premisas; // Condiciones
     private Hecho conclusion; // Resultado
 
     @Override
