@@ -1,15 +1,9 @@
 package org.example.utils;
 
 import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class Unificador {
 
-    /**
-     * Clase que representa un término en lógica de primer orden
-     * Puede ser una variable, constante o un término compuesto (predicado)
-     */
     public static class Termino {
         private String nombre;
         private List<Termino> argumentos;
@@ -106,12 +100,6 @@ public class Unificador {
         }
     }
 
-    /**
-     * Realiza la unificación de dos términos
-     * @param t1 Primer término
-     * @param t2 Segundo término
-     * @return Mapa de sustituciones que hace que t1 y t2 sean idénticos, o null si no es posible
-     */
     public Map<String, Termino> unificar(Termino t1, Termino t2) {
         return unificar(t1, t2, new HashMap<>());
     }
@@ -174,7 +162,6 @@ public class Unificador {
             return unificar(sustituciones.get(varNombre), termino, sustituciones);
         }
 
-        // Verificar "occur check" - La variable no debe aparecer en el término
         if (ocurreEn(var, termino)) {
             return null; // No se puede unificar (ciclo infinito)
         }
@@ -223,9 +210,7 @@ public class Unificador {
         return termino;
     }
 
-    /**
-     * Convierte un mapa de sustituciones de Términos a un mapa de Strings para uso en el motor
-     */
+    //Convierte un mapa de sustituciones de Términos a un mapa de Strings para uso en el motor
     public Map<String, String> convertirSustitucionesAString(Map<String, Termino> sustituciones) {
         Map<String, String> resultado = new HashMap<>();
         for (Map.Entry<String, Termino> entry : sustituciones.entrySet()) {
@@ -234,9 +219,7 @@ public class Unificador {
         return resultado;
     }
 
-    /**
-     * Unifica dos expresiones lógicas dadas como strings
-     */
+    //Unifica dos expresiones lógicas dadas como strings
     public Map<String, String> unificarExpresiones(String expr1, String expr2) {
         try {
             Termino t1 = new Termino(expr1);

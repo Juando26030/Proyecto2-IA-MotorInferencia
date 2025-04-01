@@ -10,7 +10,9 @@ import java.util.Set;
 
 public class Main {
     public static void main(String[] args) {
-        //System.out.println("\n###### EJEMPLO: MARCO Y CESAR ######");
+        //Debido a que usamos impresiones de consola, se recomienda ejecutar este código ejemplo por ejemplo, por eso está comentado la sección del ejemplo Marco y César
+        //Si quiere probar esta sección, descomente el código y comente la sección del ejemplo Jack y animales
+        //System.out.println("\n\n###### EJEMPLO: MARCO Y CESAR ######");
         //ejecutarEjemploMarcoYCesar();
 
         System.out.println("\n\n###### EJEMPLO: JACK Y ANIMALES ######");
@@ -18,8 +20,8 @@ public class Main {
     }
 
     private static void ejecutarEjemploMarcoYCesar() {
-        System.out.println("\nCreando base de conocimiento para el ejemplo Marco y César...");
-        System.out.println("Premisas:");
+        System.out.println("\nEjemplo Marco y César:");
+        System.out.println("Base de conocimiento:");
         System.out.println("1. Hombre(Marco)");
         System.out.println("2. Pompeyano(Marco)");
         System.out.println("3. ∀x Pompeyano(x) ⇒ Romano(x)");
@@ -28,7 +30,6 @@ public class Main {
         System.out.println("6. ∀x ∀y (Hombre(x) ∧ Gobernante(y) ∧ IntentaAsesinar(x, y)) ⇒ ¬Leal(x, y)");
         System.out.println("7. IntentaAsesinar(Marco, Cesar)");
 
-        // Crear la base de conocimiento con el ejemplo
         BaseConocimiento base = crearBaseMarcoYCesar();
 
         // Motor de inferencia
@@ -41,84 +42,6 @@ public class Main {
         // Pruebas con distintas consultas
         realizarConsulta(motor, clausulas, "Romano(Marco)");
         realizarConsulta(motor, clausulas, "Odia(Marco, Cesar)");
-    }
-
-    private static void ejecutarEjemploJackAnimales() {
-        System.out.println("\nCreando base de conocimiento para el ejemplo Jack y Animales...");
-        System.out.println("Premisas:");
-        System.out.println("1. ∀x_1{∃y_1[Animal(y_1) ∧ Ama(x_1, y_1)] ⇒ ∃z_1 Ama(z_1, x_1)}");
-        System.out.println("2. ∀x_2[∃y_2[Mata(x_2, y_2) ∧ Animal(y_2)] ⇒ ∀z_2 ¬Ama(z_2, x_2)]");
-        System.out.println("3. ∀x_3 animal(x_3) ⇒ ama(Jack, x_3)");
-        System.out.println("4. Mata(Jack, Tuna) V Mata(Curiosidad, Tuna)");
-        System.out.println("5. ∀x_5 gato(x_5) ⇒ animal(x_5)");
-        System.out.println("6. Gato(Tuna)");
-
-        BaseConocimiento base = new BaseConocimiento();
-
-        // Hechos iniciales del nuevo ejemplo
-        Hecho gatoTuna = new Hecho("Gato(Tuna)");
-        base.agregarHecho(gatoTuna);
-
-        // Regla 3: ∀x_3 animal(x_3) ⇒ ama(Jack, x_3)
-        Set<Hecho> premisasR3 = new HashSet<>();
-        premisasR3.add(new Hecho("Animal(x)"));
-        base.agregarRegla(new Regla(premisasR3, new Hecho("Ama(Jack, x)")));
-
-        // Regla 5: ∀x_5 gato(x_5) ⇒ animal(x_5)
-        Set<Hecho> premisasR5 = new HashSet<>();
-        premisasR5.add(new Hecho("Gato(x)"));
-        base.agregarRegla(new Regla(premisasR5, new Hecho("Animal(x)")));
-
-        // Regla 1: ∀x_1{∃y_1[Animal(y_1) ∧ Ama(x_1, y_1)] ⇒ ∃z_1 Ama(z_1, x_1)}
-        // Transformamos a FNC: ¬Animal(y) ∨ ¬Ama(x, y) ∨ Ama(z, x)
-        Set<Set<String>> clausulasR1 = new HashSet<>();
-        Set<String> disyuncionR1 = new HashSet<>();
-        disyuncionR1.add("¬Animal(y)");
-        disyuncionR1.add("¬Ama(x, y)");
-        disyuncionR1.add("Ama(z, x)");
-        clausulasR1.add(disyuncionR1);
-        base.agregarClausulasDisyuntivas(clausulasR1);
-
-        // Regla 2: ∀x_2[∃y_2[Mata(x_2, y_2) ∧ Animal(y_2)] ⇒ ∀z_2 ¬Ama(z_2, x_2)]
-        // Transformamos a FNC: ¬Mata(x, y) ∨ ¬Animal(y) ∨ ¬Ama(z, x)
-        Set<Set<String>> clausulasR2 = new HashSet<>();
-        Set<String> disyuncionR2 = new HashSet<>();
-        disyuncionR2.add("¬Mata(x, y)");
-        disyuncionR2.add("¬Animal(y)");
-        disyuncionR2.add("¬Ama(z, x)");
-        clausulasR2.add(disyuncionR2);
-        base.agregarClausulasDisyuntivas(clausulasR2);
-
-        // Regla 4: Mata(Jack, Tuna) V Mata(Curiosidad, Tuna)
-        Set<Set<String>> clausulasR4 = new HashSet<>();
-        Set<String> disyuncionR4 = new HashSet<>();
-        disyuncionR4.add("Mata(Jack, Tuna)");
-        disyuncionR4.add("Mata(Curiosidad, Tuna)");
-        clausulasR4.add(disyuncionR4);
-        base.agregarClausulasDisyuntivas(clausulasR4);
-
-        // Motor de inferencia
-        MotorInferencia motor = new MotorInferencia(base);
-        Set<Set<String>> clausulas = motor.convertirAFNC();
-
-        System.out.println("\nCláusulas en FNC (ejemplo Jack y animales):");
-        imprimirClausulas(clausulas);
-
-        // Realizar consultas clave
-        System.out.println("\n=== CONSULTAS CLAVE ===");
-
-        // Primero verificamos si Tuna es un animal
-        //realizarConsulta(motor, clausulas, "Animal(Tuna)");
-
-        // Verificamos si Jack ama a Tuna
-        //realizarConsulta(motor, clausulas, "Ama(Jack, Tuna)");
-
-        // Verificamos si Jack mata a Tuna
-        // Esta es una consulta importante porque nos dirá cuál de las disyunciones de la regla 4 es verdadera
-        //realizarConsulta(motor, clausulas, "Mata(Jack, Tuna)");
-
-        // Verificamos si hay alguien que ame a Jack
-        realizarConsulta(motor, clausulas, "Mata(Curiosidad, Tuna)");
     }
 
     private static BaseConocimiento crearBaseMarcoYCesar() {
@@ -160,6 +83,81 @@ public class Main {
         return base;
     }
 
+    private static void ejecutarEjemploJackAnimales() {
+        System.out.println("\nEjemplo Jack y Animales:");
+        System.out.println("Base de conocimiento:");
+        System.out.println("1. ∀x_1{∃y_1[Animal(y_1) ∧ Ama(x_1, y_1)] ⇒ ∃z_1 Ama(z_1, x_1)}");
+        System.out.println("2. ∀x_2[∃y_2[Mata(x_2, y_2) ∧ Animal(y_2)] ⇒ ∀z_2 ¬Ama(z_2, x_2)]");
+        System.out.println("3. ∀x_3 Animal(x_3) ⇒ Ama(Jack, x_3)");
+        System.out.println("4. Mata(Jack, Tuna) V Mata(Curiosidad, Tuna)");
+        System.out.println("5. ∀x_5 Gato(x_5) ⇒ Animal(x_5)");
+        System.out.println("6. Gato(Tuna)");
+
+        BaseConocimiento base = crearBaseJackAnimales();
+
+        // Motor de inferencia
+        MotorInferencia motor = new MotorInferencia(base);
+        Set<Set<String>> clausulas = motor.convertirAFNC();
+
+        System.out.println("\nCláusulas en FNC (ejemplo Jack y animales):");
+        imprimirClausulas(clausulas);
+
+        System.out.println("\n=== CONSULTAS CLAVE ===");
+
+        // Consulta si Jack mata a Tuna
+        realizarConsulta(motor, clausulas, "Ama(Jack, Tuna)");
+    }
+
+
+
+    private static BaseConocimiento crearBaseJackAnimales() {
+        BaseConocimiento base = new BaseConocimiento();
+
+        // Hechos iniciales del ejemplo Jack y animales
+        Hecho gatoTuna = new Hecho("Gato(Tuna)");
+        base.agregarHecho(gatoTuna);
+
+        // Regla 3: ∀x_3 Animal(x_3) ⇒ Ama(Jack, x_3)
+        Set<Hecho> premisasR3 = new HashSet<>();
+        premisasR3.add(new Hecho("Animal(x)"));
+        base.agregarRegla(new Regla(premisasR3, new Hecho("Ama(Jack, x)")));
+
+        // Regla 5: ∀x_5 Gato(x_5) ⇒ Animal(x_5)
+        Set<Hecho> premisasR5 = new HashSet<>();
+        premisasR5.add(new Hecho("Gato(x)"));
+        base.agregarRegla(new Regla(premisasR5, new Hecho("Animal(x)")));
+
+        // Regla 1: ∀x_1{∃y_1[Animal(y_1) ∧ Ama(x_1, y_1)] ⇒ ∃z_1 Ama(z_1, x_1)}
+        // Transformamos a FNC: ¬Animal(y) ∨ ¬Ama(x, y) ∨ Ama(z, x)
+        Set<Set<String>> clausulasR1 = new HashSet<>();
+        Set<String> disyuncionR1 = new HashSet<>();
+        disyuncionR1.add("¬Animal(y)");
+        disyuncionR1.add("¬Ama(x, y)");
+        disyuncionR1.add("Ama(z, x)");
+        clausulasR1.add(disyuncionR1);
+        base.agregarClausulasDisyuntivas(clausulasR1);
+
+        // Regla 2: ∀x_2[∃y_2[Mata(x_2, y_2) ∧ Animal(y_2)] ⇒ ∀z_2 ¬Ama(z_2, x_2)]
+        // Transformamos a FNC: ¬Mata(x, y) ∨ ¬Animal(y) ∨ ¬Ama(z, x)
+        Set<Set<String>> clausulasR2 = new HashSet<>();
+        Set<String> disyuncionR2 = new HashSet<>();
+        disyuncionR2.add("¬Mata(x, y)");
+        disyuncionR2.add("¬Animal(y)");
+        disyuncionR2.add("¬Ama(z, x)");
+        clausulasR2.add(disyuncionR2);
+        base.agregarClausulasDisyuntivas(clausulasR2);
+
+        // Regla 4: Mata(Jack, Tuna) V Mata(Curiosidad, Tuna)
+        Set<Set<String>> clausulasR4 = new HashSet<>();
+        Set<String> disyuncionR4 = new HashSet<>();
+        disyuncionR4.add("Mata(Jack, Tuna)");
+        disyuncionR4.add("Mata(Curiosidad, Tuna)");
+        clausulasR4.add(disyuncionR4);
+        base.agregarClausulasDisyuntivas(clausulasR4);
+
+        return base;
+    }
+
     private static void imprimirClausulas(Set<Set<String>> clausulas) {
         int i = 1;
         for (Set<String> clausula : clausulas) {
@@ -174,6 +172,7 @@ public class Main {
 
         try {
             boolean resultado = motor.resolver(new HashSet<>(clausulas), consulta);
+
             System.out.println("\n>> RESULTADO FINAL: " + (resultado ? "SÍ" : "NO"));
             System.out.println("=============================================");
         } catch (Exception e) {

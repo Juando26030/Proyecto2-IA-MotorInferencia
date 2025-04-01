@@ -1,6 +1,5 @@
 package org.example.inferencia;
 
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -21,6 +20,7 @@ public class MotorInferencia {
     private static final int MAX_ITERACIONES = 1000;
     private Map<String, String> sustitucionVariables = new HashMap<>();
     private Unificador unificador = new Unificador();
+    private int resolucionesRealizadas = 0;
 
     public MotorInferencia(BaseConocimiento base) {
         this.base = base;
@@ -67,8 +67,11 @@ public class MotorInferencia {
         Set<Set<String>> clausulasConConsulta = new HashSet<>(clausulas);
         clausulasConConsulta.add(clausulaNegada);
 
+        System.out.println("\n>> Agregada cláusula de la consulta negada: [¬" + consulta + "]");
+
         int iteraciones = 0;
         boolean nuevaClausulaGenerada = true;
+        resolucionesRealizadas = 0;
 
         while (nuevaClausulaGenerada && iteraciones < MAX_ITERACIONES) {
             iteraciones++;
@@ -76,6 +79,10 @@ public class MotorInferencia {
 
             Set<Set<String>> nuevasClausulas = new HashSet<>();
             List<Set<String>> listaClausulas = new ArrayList<>(clausulasConConsulta);
+
+            if (iteraciones % 10 == 1) {
+                System.out.println("\n>> Iteración " + iteraciones + " (" + listaClausulas.size() + " cláusulas)");
+            }
 
             for (int i = 0; i < listaClausulas.size(); i++) {
                 for (int j = i + 1; j < listaClausulas.size(); j++) {
@@ -86,25 +93,41 @@ public class MotorInferencia {
                     if (resolventes != null && !resolventes.isEmpty()) {
                         for (Set<String> resolvente : resolventes) {
                             if (resolvente.isEmpty()) {
+                                System.out.println("\n>> ENCONTRADA CLÁUSULA VACÍA!");
+                                System.out.println(">> Resolución entre: " + listaClausulas.get(i) + " y " + listaClausulas.get(j));
+                                System.out.println(">> Total de resoluciones realizadas: " + resolucionesRealizadas);
                                 return true; // Se derivó la cláusula vacía (contradicción)
                             }
 
                             if (!clausulasConConsulta.contains(resolvente)) {
                                 nuevasClausulas.add(resolvente);
                                 nuevaClausulaGenerada = true;
+
+                                // Solo imprimimos algunas resoluciones clave para no saturar la consola
+                                if (resolucionesRealizadas % 20 == 0 || resolvente.size() <= 2) {
+                                    System.out.println(">> Resolución #" + resolucionesRealizadas + ": " +
+                                            listaClausulas.get(i) + " + " +
+                                            listaClausulas.get(j) + " = " + resolvente);
+                                }
                             }
                         }
                     }
                 }
             }
 
+            if (nuevasClausulas.size() > 0 && iteraciones % 10 == 0) {
+                System.out.println(">> Generadas " + nuevasClausulas.size() + " nuevas cláusulas en iteración " + iteraciones);
+            }
+
             clausulasConConsulta.addAll(nuevasClausulas);
         }
 
         if (iteraciones >= MAX_ITERACIONES) {
+            System.out.println("\n>> LÍMITE DE ITERACIONES ALCANZADO: " + MAX_ITERACIONES);
             throw new Exception("No se puede determinar la consulta con la información disponible (excedido número máximo de iteraciones)");
         }
 
+        System.out.println("\n>> NO SE ENCONTRÓ CONTRADICCIÓN después de " + resolucionesRealizadas + " resoluciones");
         return false; // No se pudo derivar la contradicción
     }
 
@@ -148,6 +171,7 @@ public class MotorInferencia {
                         }
                     }
 
+                    resolucionesRealizadas++;
                     resultado.add(resolvente);
                 }
             }
