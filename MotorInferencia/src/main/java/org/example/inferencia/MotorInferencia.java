@@ -9,6 +9,8 @@ import org.example.model.Hecho;
 import org.example.model.Regla;
 
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Getter
 @Setter
@@ -17,8 +19,22 @@ import java.util.*;
 public class MotorInferencia {
     private BaseConocimiento base;
     private static final int MAX_ITERACIONES = 100;
+    private Map<String, String> sustitucionVariables = new HashMap<>();
+
+    public MotorInferencia(BaseConocimiento base) {
+        this.base = base;
+    }
+
+    public void inicializarSustituciones(Set<String> constantes) {
+        sustitucionVariables.clear();
+        // Las sustituciones se inicializarán con las primeras constantes disponibles
+        // Se pueden agregar manualmente en el Main si se requieren sustituciones específicas
+    }
 
     public Set<Set<String>> convertirAFNC() {
+        // Extraer constantes de los hechos para posibles sustituciones
+        extraerConstantesDeHechos();
+
         Set<Set<String>> clausulas = new HashSet<>();
 
         // Convertir hechos en cláusulas
@@ -54,14 +70,57 @@ public class MotorInferencia {
         return clausulas;
     }
 
-    private String unificarTerminos(String literal) {
-        // Reemplaza variables por constantes específicas del problema
-        String resultado = literal;
-        if (literal.contains("(x)") || literal.contains("(x,") || literal.contains(", x)") || literal.contains(", x,")) {
-            resultado = resultado.replace("(x)", "(Marco)").replace("(x,", "(Marco,").replace(", x)", ", Marco)").replace(", x,", ", Marco,");
+    private void extraerConstantesDeHechos() {
+        Set<String> constantes = new HashSet<>();
+
+        // Extraer constantes de los hechos existentes
+        for (Hecho hecho : base.getHechos()) {
+            List<String> constantesEnHecho = extraerConstantesDeExpresion(hecho.toString());
+            constantes.addAll(constantesEnHecho);
         }
-        if (literal.contains("(y)") || literal.contains("(y,") || literal.contains(", y)") || literal.contains(", y,")) {
-            resultado = resultado.replace("(y)", "(Cesar)").replace("(y,", "(Cesar,").replace(", y)", ", Cesar)").replace(", y,", ", Cesar,");
+
+        // Aquí podríamos inicializar las sustituciones automáticamente
+        // Por ahora dejamos que el usuario defina las sustituciones manualmente
+    }
+
+    private List<String> extraerConstantesDeExpresion(String expresion) {
+        List<String> constantes = new ArrayList<>();
+        Pattern pattern = Pattern.compile("\\([^(),]+(,[^(),]+)*\\)");
+        Matcher matcher = pattern.matcher(expresion);
+
+        if (matcher.find()) {
+            String args = matcher.group(0);
+            args = args.substring(1, args.length() - 1); // Quitar paréntesis
+            String[] argumentos = args.split(",");
+
+            for (String arg : argumentos) {
+                arg = arg.trim();
+                // Las constantes comienzan con mayúscula o son valores específicos
+                if (!arg.equals("x") && !arg.equals("y") && !arg.startsWith("?")) {
+                    constantes.add(arg);
+                }
+            }
+        }
+
+        return constantes;
+    }
+
+    public String unificarTerminos(String literal) {
+        // Esta versión generalizada sustituye las variables según el mapa de sustituciones
+        if (sustitucionVariables.isEmpty()) {
+            return literal; // Si no hay sustituciones definidas, devolver literal sin cambios
+        }
+
+        String resultado = literal;
+        for (Map.Entry<String, String> sustitucion : sustitucionVariables.entrySet()) {
+            String variable = sustitucion.getKey();
+            String valor = sustitucion.getValue();
+
+            // Patrones comunes de ocurrencia de variables en predicados lógicos
+            resultado = resultado.replace("(" + variable + ")", "(" + valor + ")")
+                    .replace("(" + variable + ",", "(" + valor + ",")
+                    .replace(", " + variable + ")", ", " + valor + ")")
+                    .replace(", " + variable + ",", ", " + valor + ",");
         }
         return resultado;
     }

@@ -5,7 +5,9 @@ import org.example.model.BaseConocimiento;
 import org.example.model.Hecho;
 import org.example.model.Regla;
 
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 public class Main {
@@ -47,6 +49,13 @@ public class Main {
 
         // Motor de inferencia
         MotorInferencia motor = new MotorInferencia(base);
+
+        // Definimos las sustituciones para este problema específico
+        Map<String, String> sustituciones = new HashMap<>();
+        sustituciones.put("x", "Marco");
+        sustituciones.put("y", "Cesar");
+        motor.setSustitucionVariables(sustituciones);
+
         Set<Set<String>> clausulas = motor.convertirAFNC();
 
         System.out.println("Cláusulas en FNC:");
@@ -56,11 +65,15 @@ public class Main {
 
         // Pruebas con distintas consultas
         realizarConsulta(motor, clausulas, "Romano(Marco)");
+        realizarConsulta(motor, clausulas, "Pompeyano(Marco)");
+        realizarConsulta(motor, clausulas, "Romano(Cesar)");
         realizarConsulta(motor, clausulas, "Pompeyano(Cesar)");
         realizarConsulta(motor, clausulas, "Leal(Marco, Cesar)");
+        realizarConsulta(motor, clausulas, "Leal(Cesar, Marco)");
         realizarConsulta(motor, clausulas, "IntentaAsesinar(Cesar, Marco)");
-        realizarConsulta(motor, clausulas, "Romano(Cesar)");
+        realizarConsulta(motor, clausulas, "IntentaAsesinar(Marco, Cesar)");
         realizarConsulta(motor, clausulas, "Odia(Marco, Cesar)");
+        realizarConsulta(motor, clausulas, "Odia(Cesar, Marco)");
     }
 
     private static void realizarConsulta(MotorInferencia motor, Set<Set<String>> clausulas, String consulta) {
