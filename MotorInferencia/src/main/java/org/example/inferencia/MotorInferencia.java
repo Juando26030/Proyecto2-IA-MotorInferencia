@@ -7,6 +7,7 @@ import lombok.Setter;
 import org.example.model.BaseConocimiento;
 import org.example.model.Hecho;
 import org.example.model.Regla;
+import org.example.utils.Unificador;
 
 import java.util.*;
 import java.util.regex.Matcher;
@@ -14,33 +15,24 @@ import java.util.regex.Pattern;
 
 @Getter
 @Setter
-@AllArgsConstructor
 @NoArgsConstructor
 public class MotorInferencia {
     private BaseConocimiento base;
-    private static final int MAX_ITERACIONES = 100;
+    private static final int MAX_ITERACIONES = 1000;
     private Map<String, String> sustitucionVariables = new HashMap<>();
+    private Unificador unificador = new Unificador();
 
     public MotorInferencia(BaseConocimiento base) {
         this.base = base;
     }
 
-    public void inicializarSustituciones(Set<String> constantes) {
-        sustitucionVariables.clear();
-        // Las sustituciones se inicializarán con las primeras constantes disponibles
-        // Se pueden agregar manualmente en el Main si se requieren sustituciones específicas
-    }
-
     public Set<Set<String>> convertirAFNC() {
-        // Extraer constantes de los hechos para posibles sustituciones
-        extraerConstantesDeHechos();
-
         Set<Set<String>> clausulas = new HashSet<>();
 
         // Convertir hechos en cláusulas
         for (Hecho hecho : base.getHechos()) {
             Set<String> clausula = new HashSet<>();
-            clausula.add(unificarTerminos(hecho.toString()));
+            clausula.add(hecho.toString());
             clausulas.add(clausula);
         }
 
@@ -50,86 +42,30 @@ public class MotorInferencia {
 
             // Negamos las premisas
             for (Hecho premisa : regla.getPremisas()) {
-                clausula.add("¬" + unificarTerminos(premisa.toString()));
+                clausula.add("¬" + premisa.toString());
             }
 
             // Agregamos la conclusión
-            clausula.add(unificarTerminos(regla.getConclusion().toString()));
+            clausula.add(regla.getConclusion().toString());
             clausulas.add(clausula);
         }
 
         // Agregar cláusulas disyuntivas (para reglas tipo A ⇒ B ∨ C)
         for (Set<String> clausulaDisyuntiva : base.getClausulasDisyuntivas()) {
-            Set<String> clausulaUnificada = new HashSet<>();
-            for (String literal : clausulaDisyuntiva) {
-                clausulaUnificada.add(unificarTerminos(literal));
-            }
-            clausulas.add(clausulaUnificada);
+            clausulas.add(new HashSet<>(clausulaDisyuntiva));
         }
 
         return clausulas;
     }
 
-    private void extraerConstantesDeHechos() {
-        Set<String> constantes = new HashSet<>();
-
-        // Extraer constantes de los hechos existentes
-        for (Hecho hecho : base.getHechos()) {
-            List<String> constantesEnHecho = extraerConstantesDeExpresion(hecho.toString());
-            constantes.addAll(constantesEnHecho);
-        }
-
-        // Aquí podríamos inicializar las sustituciones automáticamente
-        // Por ahora dejamos que el usuario defina las sustituciones manualmente
-    }
-
-    private List<String> extraerConstantesDeExpresion(String expresion) {
-        List<String> constantes = new ArrayList<>();
-        Pattern pattern = Pattern.compile("\\([^(),]+(,[^(),]+)*\\)");
-        Matcher matcher = pattern.matcher(expresion);
-
-        if (matcher.find()) {
-            String args = matcher.group(0);
-            args = args.substring(1, args.length() - 1); // Quitar paréntesis
-            String[] argumentos = args.split(",");
-
-            for (String arg : argumentos) {
-                arg = arg.trim();
-                // Las constantes comienzan con mayúscula o son valores específicos
-                if (!arg.equals("x") && !arg.equals("y") && !arg.startsWith("?")) {
-                    constantes.add(arg);
-                }
-            }
-        }
-
-        return constantes;
-    }
-
-    public String unificarTerminos(String literal) {
-        // Esta versión generalizada sustituye las variables según el mapa de sustituciones
-        if (sustitucionVariables.isEmpty()) {
-            return literal; // Si no hay sustituciones definidas, devolver literal sin cambios
-        }
-
-        String resultado = literal;
-        for (Map.Entry<String, String> sustitucion : sustitucionVariables.entrySet()) {
-            String variable = sustitucion.getKey();
-            String valor = sustitucion.getValue();
-
-            // Patrones comunes de ocurrencia de variables en predicados lógicos
-            resultado = resultado.replace("(" + variable + ")", "(" + valor + ")")
-                    .replace("(" + variable + ",", "(" + valor + ",")
-                    .replace(", " + variable + ")", ", " + valor + ")")
-                    .replace(", " + variable + ",", ", " + valor + ",");
-        }
-        return resultado;
-    }
-
     public boolean resolver(Set<Set<String>> clausulas, String consulta) throws Exception {
         // Negamos la consulta para la refutación
         Set<String> clausulaNegada = new HashSet<>();
-        clausulaNegada.add("¬" + unificarTerminos(consulta));
-        clausulas.add(clausulaNegada);
+        clausulaNegada.add("¬" + consulta);
+
+        // Creamos una copia de las cláusulas para no modificar el conjunto original
+        Set<Set<String>> clausulasConConsulta = new HashSet<>(clausulas);
+        clausulasConConsulta.add(clausulaNegada);
 
         int iteraciones = 0;
         boolean nuevaClausulaGenerada = true;
@@ -139,53 +75,108 @@ public class MotorInferencia {
             nuevaClausulaGenerada = false;
 
             Set<Set<String>> nuevasClausulas = new HashSet<>();
-            List<Set<String>> listaClausulas = new ArrayList<>(clausulas);
+            List<Set<String>> listaClausulas = new ArrayList<>(clausulasConConsulta);
 
             for (int i = 0; i < listaClausulas.size(); i++) {
                 for (int j = i + 1; j < listaClausulas.size(); j++) {
-                    Set<String> resolvente = resolverClausulas(listaClausulas.get(i), listaClausulas.get(j));
+                    // Intentar resolver con unificación
+                    List<Set<String>> resolventes = resolverClausulasConUnificacion(
+                            listaClausulas.get(i), listaClausulas.get(j));
 
-                    if (resolvente != null) {
-                        if (resolvente.isEmpty()) {
-                            return true; // Se derivó la cláusula vacía (contradicción)
-                        }
+                    if (resolventes != null && !resolventes.isEmpty()) {
+                        for (Set<String> resolvente : resolventes) {
+                            if (resolvente.isEmpty()) {
+                                return true; // Se derivó la cláusula vacía (contradicción)
+                            }
 
-                        if (!clausulas.contains(resolvente)) {
-                            nuevasClausulas.add(resolvente);
-                            nuevaClausulaGenerada = true;
+                            if (!clausulasConConsulta.contains(resolvente)) {
+                                nuevasClausulas.add(resolvente);
+                                nuevaClausulaGenerada = true;
+                            }
                         }
                     }
                 }
             }
 
-            clausulas.addAll(nuevasClausulas);
+            clausulasConConsulta.addAll(nuevasClausulas);
         }
 
         if (iteraciones >= MAX_ITERACIONES) {
-            throw new Exception("No se puede determinar la consulta con la información disponible");
+            throw new Exception("No se puede determinar la consulta con la información disponible (excedido número máximo de iteraciones)");
         }
 
         return false; // No se pudo derivar la contradicción
     }
 
-    private Set<String> resolverClausulas(Set<String> c1, Set<String> c2) {
-        for (String literal1 : c1) {
-            String complemento;
-            if (literal1.startsWith("¬")) {
-                complemento = literal1.substring(1);
-            } else {
-                complemento = "¬" + literal1;
-            }
+    private List<Set<String>> resolverClausulasConUnificacion(Set<String> c1, Set<String> c2) {
+        List<Set<String>> resultado = new ArrayList<>();
 
-            if (c2.contains(complemento)) {
-                Set<String> resolvente = new HashSet<>(c1);
-                resolvente.remove(literal1);
-                Set<String> c2Copia = new HashSet<>(c2);
-                c2Copia.remove(complemento);
-                resolvente.addAll(c2Copia);
-                return resolvente;
+        for (String literal1 : c1) {
+            String literal1SinNegacion = literal1.startsWith("¬") ? literal1.substring(1) : literal1;
+            String literal1Negado = literal1.startsWith("¬") ? literal1.substring(1) : "¬" + literal1;
+
+            for (String literal2 : c2) {
+                // Comprobar si los literales son unificables y complementarios
+                Map<String, String> sustitucion = null;
+
+                if (literal2.equals(literal1Negado)) {
+                    // Caso simple: literales idénticos pero de signo contrario
+                    sustitucion = new HashMap<>();
+                } else if ((literal2.startsWith("¬") && !literal1.startsWith("¬")) ||
+                        (!literal2.startsWith("¬") && literal1.startsWith("¬"))) {
+                    // Intentar unificar literal1 sin negación con literal2 sin negación
+                    String literal2SinNegacion = literal2.startsWith("¬") ? literal2.substring(1) : literal2;
+
+                    sustitucion = unificador.unificarExpresiones(literal1SinNegacion, literal2SinNegacion);
+                }
+
+                if (sustitucion != null) {
+                    // Crear resolvente aplicando la sustitución
+                    Set<String> resolvente = new HashSet<>();
+
+                    // Añadir todas las cláusulas de c1 excepto literal1
+                    for (String l : c1) {
+                        if (!l.equals(literal1)) {
+                            resolvente.add(aplicarSustitucion(l, sustitucion));
+                        }
+                    }
+
+                    // Añadir todas las cláusulas de c2 excepto literal2
+                    for (String l : c2) {
+                        if (!l.equals(literal2)) {
+                            resolvente.add(aplicarSustitucion(l, sustitucion));
+                        }
+                    }
+
+                    resultado.add(resolvente);
+                }
             }
         }
-        return null; // No se pudo resolver
+
+        return resultado;
+    }
+
+    private String aplicarSustitucion(String literal, Map<String, String> sustitucion) {
+        String resultado = literal;
+        Pattern pattern = Pattern.compile("\\b[xyz]\\b|\\([xyz]\\)|\\([xyz],|,[xyz]\\)|,[xyz],");
+        Matcher matcher = pattern.matcher(resultado);
+
+        StringBuffer sb = new StringBuffer();
+        while (matcher.find()) {
+            String match = matcher.group();
+            for (Map.Entry<String, String> entry : sustitucion.entrySet()) {
+                String variable = entry.getKey();
+                String valor = entry.getValue();
+
+                if (match.contains(variable)) {
+                    String reemplazo = match.replace(variable, valor);
+                    matcher.appendReplacement(sb, reemplazo);
+                    break;
+                }
+            }
+        }
+        matcher.appendTail(sb);
+
+        return sb.length() > 0 ? sb.toString() : resultado;
     }
 }
