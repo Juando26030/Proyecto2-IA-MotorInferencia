@@ -182,7 +182,7 @@ public class MotorInferencia {
 
     private String aplicarSustitucion(String literal, Map<String, String> sustitucion) {
         String resultado = literal;
-        Pattern pattern = Pattern.compile("\\b[xyz]\\b|\\([xyz]\\)|\\([xyz],|,[xyz]\\)|,[xyz],");
+        Pattern pattern = Pattern.compile("\\b[mxyz]\\b|\\([mxyz]\\)|\\([mxyz],|,[mxyz]\\)|,[mxyz],");
         Matcher matcher = pattern.matcher(resultado);
 
         StringBuffer sb = new StringBuffer();

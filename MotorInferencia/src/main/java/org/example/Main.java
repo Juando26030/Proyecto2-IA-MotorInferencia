@@ -15,8 +15,11 @@ public class Main {
         //System.out.println("\n\n###### EJEMPLO: MARCO Y CESAR ######");
         //ejecutarEjemploMarcoYCesar();
 
-        System.out.println("\n\n###### EJEMPLO: JACK Y ANIMALES ######");
-        ejecutarEjemploJackAnimales();
+        //System.out.println("\n\n###### EJEMPLO: JACK Y ANIMALES ######");
+        //ejecutarEjemploJackAnimales();
+
+        System.out.println("\n\n ###### EJEMPLO: CRIMEN DEL CORONEL WEST #####");
+        ejecutarEjemploCrimenNono();
     }
 
     private static void ejecutarEjemploMarcoYCesar() {
@@ -109,8 +112,8 @@ public class Main {
     }
 
 
-
     private static BaseConocimiento crearBaseJackAnimales() {
+        
         BaseConocimiento base = new BaseConocimiento();
 
         // Hechos iniciales del ejemplo Jack y animales
@@ -157,6 +160,79 @@ public class Main {
 
         return base;
     }
+
+    private static void ejecutarEjemploCrimenNono(){
+        System.out.println("\nEjemplo Crimen Nono:");
+        System.out.println("Base de conocimiento:");
+        System.out.println("1. Enemigo(Nono, America)");
+        System.out.println("2. Misil(M)");
+        System.out.println("3. Americano(West)");
+        System.out.println("4. Tiene(Nono, M)");
+        System.out.println("5. ∀x Americano(x) ∧ Arma(y) ∧ Vende(x, y, z) ∧ Hostil(z) ⇒ Criminal(x)");
+        System.out.println("6. ∀x Tiene(Nono, x) ⇒ Misil(x)");
+        System.out.println("7. ∀x Misil(x) ∧ Tiene(Nono, x) ⇒ Vende(West, x, Nono)");
+        System.out.println("8. ∀x Enemigo(x, America) ⇒ Hostil(x)");
+        System.out.println("9. Misil(x) ⇒ Arma(x)");
+
+        BaseConocimiento base = crearBaseCrimenNono();
+
+        // Motor de inferencia
+        MotorInferencia motor = new MotorInferencia(base);
+        Set<Set<String>> clausulas = motor.convertirAFNC();
+
+        System.out.println("\nCláusulas en FNC:");
+        imprimirClausulas(clausulas);
+
+        realizarConsulta(motor, clausulas, "Criminal(West)");
+
+    }
+    
+    private static BaseConocimiento crearBaseCrimenNono(){
+        BaseConocimiento base = new BaseConocimiento();
+
+        // Hechos iniciales
+        Hecho enemigoNonoAmerica = new Hecho("Enemigo(Nono, America)"); // Clausula 2
+        Hecho misilM1 = new Hecho("Misil(m)"); // Clausula 4
+        Hecho americanoWest = new Hecho("Americano(West)"); // Clausula 5
+        Hecho tieneNonoM1 = new Hecho("Tiene(Nono, m)"); // Clusula 3
+
+        base.agregarHecho(enemigoNonoAmerica);
+        base.agregarHecho(misilM1);
+        base.agregarHecho(americanoWest);
+        base.agregarHecho(tieneNonoM1);
+
+        // Regla 1
+        Set<Hecho> premisasR1 = new HashSet<>();
+        premisasR1.add(new Hecho("Americano(x)"));
+        premisasR1.add(new Hecho("Arma(y)"));
+        premisasR1.add(new Hecho("Vende(x, y, z)"));
+        premisasR1.add(new Hecho("Hostil(z)"));
+        base.agregarRegla(new Regla(premisasR1, new Hecho("Criminal(x)")));
+
+        // Regla 3 y 4
+        Set<Hecho> premisasR3 = new HashSet<>();
+        premisasR3.add(new Hecho("Tiene(Nono, x)"));
+        base.agregarRegla(new Regla(premisasR3, new Hecho("Misil(x)")));
+
+        // Regla 5
+        Set<Hecho> premisasR4 = new HashSet<>();
+        premisasR4.add(new Hecho("Misil(x)"));
+        premisasR4.add(new Hecho("Tiene(Nono, x)"));
+        base.agregarRegla(new Regla(premisasR4, new Hecho("Vende(West, x, Nono)")));
+
+        // Regla 6
+        Set<Hecho> premisasR6 = new HashSet<>();
+        premisasR6.add(new Hecho("Enemigo(x, America)"));
+        base.agregarRegla(new Regla(premisasR6, new Hecho("Hostil(x)")));
+
+        Set<Hecho> premisasR7 = new HashSet<>();
+        premisasR7.add(new Hecho("Misil(m)"));
+        base.agregarRegla(new Regla(premisasR7, new Hecho("Arma(m)")));
+
+        return base;
+
+    }
+
 
     private static void imprimirClausulas(Set<Set<String>> clausulas) {
         int i = 1;
